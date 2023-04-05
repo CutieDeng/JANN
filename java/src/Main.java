@@ -283,8 +283,12 @@ public class Main {
             } 
             // check sum 
             if (sum == 0) {
-                System.err.printf("matrix row = %d, col = %d", tmp.row, tmp.col); 
-                throw new RuntimeException("sum is zero"); 
+                System.err.printf("matrix row = %d, col = %d\n", tmp.row, tmp.col); 
+                for (int j = 0; j < tmp.col; j++) {
+                    tmp.set(i, j, 1.0f / tmp.col); 
+                }
+                continue; 
+                // throw new RuntimeException("sum is zero"); 
             } 
             if (sum == Float.POSITIVE_INFINITY || sum == Float.NEGATIVE_INFINITY) {
                 throw new RuntimeException("sum is infinity"); 
@@ -347,7 +351,8 @@ public class Main {
         Matrix m = new Matrix(row, col); 
         // norma distribution 
         var random = new Random(); 
-        m.init((i, j) -> (float) random.nextGaussian() );
+        var up = (float ) Math.sqrt(6.0 / (row + col)); 
+        m.init((i, j) -> random.nextFloat(up) * 2 - up); 
         return m; 
     } 
 
