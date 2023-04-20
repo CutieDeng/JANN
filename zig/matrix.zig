@@ -1,6 +1,8 @@
 pub const std = @import("std");
 
-pub const DataType = f64; 
+pub const DataType = f32; 
+
+pub const config = @import("config.zig"); 
 
 /// Matrix struct 
 /// 
@@ -143,20 +145,29 @@ pub const Matrix = struct {
             return error.MatrixSizeMismatch; 
         }
         // multiply 
-        var i : usize = 0; 
-        var j : usize = 0; 
-        var k : usize = 0; 
-        while (i < result.row) : (i += 1) {
-            j = 0;
-            while (j < result.col) : (j += 1) {
-                k = 0;
-                var tmp : DataType = 0; 
-                while (k < lhs.col) : (k += 1) {
-                    tmp += lhs.get(i, k) * rhs.get(k, j); 
+        if (config.gpu) {
+            const result_matrix_info = .{
+                .row = @intCast(i64, lhs.row), 
+                .col = @intCast(i64, rhs.col), 
+                .inner = @intCast(i64, lhs.col), 
+            }; 
+            config.matrix_f32_multiplication(lhs.data, rhs.data, result.data, result_matrix_info.row, result_matrix_info.col, result_matrix_info.inner); 
+        } else {
+            var i : usize = 0; 
+            var j : usize = 0; 
+            var k : usize = 0; 
+            while (i < result.row) : (i += 1) {
+                j = 0;
+                while (j < result.col) : (j += 1) {
+                    k = 0;
+                    var tmp : DataType = 0; 
+                    while (k < lhs.col) : (k += 1) {
+                        tmp += lhs.get(i, k) * rhs.get(k, j); 
+                    }
+                    result.set(i, j, tmp); 
                 }
-                result.set(i, j, tmp); 
-            }
-        } 
+            } 
+        }
     } 
     pub fn transpose_as_init(result: *Matrix, origin: *const Matrix, allocator: std.mem.Allocator) MatrixError!void {
         try result.init(origin.col, origin.row, allocator); 
@@ -201,7 +212,7 @@ pub const Matrix = struct {
             while (j < matrix.col) : (j += 1) {
                 matrix.set(i, j, matrix.get(i, j) + other.get(i, 0)); 
             } 
-        }  
+        }
     }
     pub fn assign(matrix: *Matrix, other: *const Matrix) MatrixError!void {
         if (matrix.row != other.row or matrix.col != other.col) {
