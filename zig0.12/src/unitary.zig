@@ -12,7 +12,7 @@ pub fn reverse(rst: matrix.Matrix, src: matrix.Matrix) void {
         for (0..src_col) |c| {
             const src_idx = r * src_col + c; 
             const rst_idx = c * src_row + r; 
-            rst[rst_idx] = matrix.block.inverse(src[src_idx]);
+            rst.content[rst_idx] = matrix.block.inverse(src.content[src_idx]);
         }
     }
 }
@@ -21,4 +21,16 @@ pub fn clone(src: matrix.Matrix) !matrix.Matrix {
     var rst: matrix.Matrix = try matrix.Matrix.init(@divExact(src.size, src.col), src.col, src.allocator);
     @memcpy(rst.content[0..rst.size], src.content[0..src.size]);
     return rst; 
+}
+
+pub fn divide_scalar(src: matrix.Matrix, division: f16) void {
+    for (src.content[0..src.size]) |*item| {
+        item.* /= @splat(division);
+    }  
+}
+
+pub fn multiply_scalar(src: matrix.Matrix, division: f16) void {
+    for (src.content[0..src.size]) |*item| {
+        item.* *= @splat(division);
+    }  
 }

@@ -36,6 +36,7 @@ pub fn multiply(rst: matrix.Matrix, lhs: matrix.Matrix, rhs: matrix.Matrix) void
 }
 
 pub fn @"multiply a block"(lhs: matrix.F16X64, rhs: matrix.F16X64) matrix.F16X64 {
+    @setFloatMode(std.builtin.FloatMode.Optimized); 
     var rst: matrix.F16X64 = undefined; 
     inline for (0..64) |ridx| {
         var v: f64 = 0; 

@@ -2,19 +2,23 @@ const std = @import("std");
 
 pub const matrix = @import("matrix.zig"); 
 
+test {
+    _ = matrix; 
+}
+
 pub fn debug_print(i: f16) void {
     std.debug.print("{d:.2}", .{i}); 
 }
 pub fn line() void {
-    std.debug.print("\n", .{});  
+    std.debug.print("{c}", .{ '\n' });  
 }
 pub fn block() void {
-    std.debug.print(" ", .{}); 
+    std.debug.print("{c}", .{ ' ' }); 
 }
 
 const Allocator = std.mem.Allocator; 
 
-fn read_data(allocator: Allocator, label: [] const u8, train: [] const u8, x_matrix: *matrix.WrapMatrix, y_matrix: *matrix.WrapMatrix) !void {
+fn read_data(allocator: Allocator, x_matrix: *matrix.WrapMatrix, y_matrix: *matrix.WrapMatrix, label: [] const u8, train: [] const u8) !void {
     var label_content: []u8 = undefined; 
     var label_split: std.ArrayList([]const u8) = undefined; 
     try read_one_file(allocator, label, &label_content, &label_split); 
@@ -34,6 +38,7 @@ fn read_data(allocator: Allocator, label: [] const u8, train: [] const u8, x_mat
 
 fn assign(rst: *matrix.WrapMatrix, allocator: Allocator, col_suggest: usize, origin: []const []const u8, ) !void {
     var tmp = try matrix.WrapMatrix.init(origin.len, col_suggest, allocator);
+    tmp.clear(); 
     errdefer tmp.deinit();  
     for (0..origin.len) |lidx| {
         var cidx: usize = 0; 
@@ -73,7 +78,33 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     var x: matrix.WrapMatrix = undefined; 
     var y: matrix.WrapMatrix = undefined; 
-    try read_data(allocator, "label.txt", "train.txt", &x, &y);  
+    try read_data(allocator, &x, &y, "label.txt", "train.txt"); 
     defer x.deinit(); 
-    defer y.deinit();  
+    defer y.deinit(); 
+    matrix.unitary.divide_scalar(x.block_impl, 256); 
+    // matrix.foreach(x, debug_print, line, block); 
+    const xi = try matrix.WrapMatrix.init(x.col, x.getRow(), allocator);
+    defer xi.deinit(); 
+    xi.clear(); 
+    matrix.unitary.reverse(xi.block_impl, x.block_impl);
+    matrix.unitary.divide_scalar(xi.block_impl, 100); 
+    const rst = try matrix.WrapMatrix.init(x.col, x.col, allocator); 
+    defer rst.deinit(); 
+
+    // test time 
+    const start = try std.time.Instant.now(); 
+    matrix.multiplication.multiply(rst.block_impl, xi.block_impl, x.block_impl); 
+    const end = try std.time.Instant.now(); 
+    const dur = std.time.Instant.since(end, start);
+    const time_f128 : f64 = @floatFromInt(dur);
+    const time = time_f128 / 1e9; 
+
+    // matrix.foreach(rst, debug_print, line, block); 
+
+    try std.io.getStdOut().writer().print("time: {d}s \n", .{time});
+
+    const df = try std.fs.cwd().createFile("rst.bin", .{}); 
+    defer df.close(); 
+
+    try matrix.save(rst, df); 
 }

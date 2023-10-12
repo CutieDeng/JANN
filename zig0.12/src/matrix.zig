@@ -64,7 +64,7 @@ pub const WrapMatrix = struct {
         return self;  
     } 
     pub fn clear(self: WrapMatrix) void {
-        for (self.block_impl.content[0..self.size]) |*b| {
+        for (self.block_impl.content[0..self.block_impl.size]) |*b| {
             b.* = @splat(0);
         }
     }
@@ -80,6 +80,9 @@ pub const WrapMatrix = struct {
         const block_idx = block_row * self.block_impl.col + block_col;
         const ref = &self.block_impl.content[block_idx][(row % 8) * 8 + (col % 8)];
         return ref;   
+    }
+    pub inline fn getRow(self: WrapMatrix) usize {
+        return @divExact(self.size, self.col); 
     }
 };
 
@@ -101,6 +104,52 @@ pub fn foreach(wrap: WrapMatrix, fun: *const fn (f16) void, line_separate: ?*con
     }
 }
 
+pub fn save(wrap: WrapMatrix, file: std.fs.File) !void {
+    const writer = file.writer(); 
+    try writer.writeIntLittle(usize, wrap.col); 
+    try writer.writeIntLittle(usize, wrap.size); 
+    const content = wrap.block_impl.content[0..wrap.block_impl.size]; 
+    for (content) |c| {
+        const ptr: [*]const u8 = @ptrCast(&c); 
+        try writer.writeAll(ptr[0..128]);
+    }
+}
+
+pub fn load(allocator: std.mem.Allocator, file: std.fs.File) !WrapMatrix {
+    var col: usize = undefined; 
+    var size: usize = undefined; 
+    const reader = file.reader(); 
+    col = try reader.readIntLittle(usize); 
+    size = try reader.readIntLittle(usize); 
+    const row = @divExact(size, col); 
+    var wrap: WrapMatrix = try WrapMatrix.init(row, col, allocator);
+    errdefer wrap.deinit();  
+    for (wrap.block_impl.content[0..wrap.block_impl.size]) |*c| {
+        const ptr: [*]u8 = @ptrCast(c); 
+        const len = try reader.readAll(ptr[0..128]);
+        std.debug.assert(len == 128); 
+    } 
+    return wrap; 
+}
+
+pub fn debug(out: std.fs.File, matrix: WrapMatrix) !void {
+    const writer = out.writer();
+    const col = matrix.col; 
+    const row = matrix.getRow(); 
+    for (0..row) |r| {
+        for (0..col) |c| {
+            try writer.print("{d:.1}{s}", .{ matrix.at(r, c).*, if (c == col - 1) "\n" else " "}); 
+        }
+    }
+}
+
+test {
+    var wr: WrapMatrix = try WrapMatrix.init(10, 10, std.testing.allocator); 
+    wr.clear(); 
+    try save(wr, std.io.getStdOut());
+}
+
 pub const multiplication = @import("multiplication.zig");
 pub const addition = @import("addition.zig");
 pub const unitary = @import("unitary.zig");
+pub const csv = @import("csv.zig"); 
