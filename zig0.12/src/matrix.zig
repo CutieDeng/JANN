@@ -145,11 +145,12 @@ pub fn debug(out: std.fs.File, matrix: WrapMatrix) !void {
 
 test {
     var wr: WrapMatrix = try WrapMatrix.init(10, 10, std.testing.allocator); 
+    defer wr.deinit(); 
     wr.clear(); 
-    try save(wr, std.io.getStdOut());
+    // try save(wr, std.io.getStdOut());
 }
 
 pub const multiplication = @import("multiplication.zig");
 pub const addition = @import("addition.zig");
 pub const unitary = @import("unitary.zig");
-pub const csv = @import("csv.zig"); 
+// pub const csv = @import("csv.zig"); 

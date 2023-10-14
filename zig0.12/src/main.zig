@@ -1,9 +1,11 @@
 const std = @import("std");
 
 pub const matrix = @import("matrix.zig"); 
+pub const m2 = @import("matrix/matrix.zig");
 
 test {
-    _ = matrix; 
+    _ = m2; 
+    _ = matrix;  
 }
 
 pub fn debug_print(i: f16) void {
